@@ -113,10 +113,7 @@ namespace MarathonSoundsPlayer
         {
             if (SoundsFileLoaded)
             {
-                if (owner == null)
-                {
-                    throw new ArgumentNullException(nameof(owner));
-                }
+                ArgumentNullException.ThrowIfNull(owner);
 
                 lock (mSync)
                 {
@@ -159,10 +156,7 @@ namespace MarathonSoundsPlayer
         {
             if (SoundsFileLoaded)
             {
-                if (input == null)
-                {
-                    throw new ArgumentNullException(nameof(input));
-                }
+                ArgumentNullException.ThrowIfNull(input);
 
                 lock (mSync)
                 {
