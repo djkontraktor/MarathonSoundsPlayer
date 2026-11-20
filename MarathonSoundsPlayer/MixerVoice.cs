@@ -55,7 +55,7 @@ namespace MarathonSoundsPlayer
 
         #region Constructor
 
-        public MixerVoice(MemoryStream memoryStream, WaveFileReader waveReader, PitchAndSpeedSampleProvider pitchProvider, VolumePanSampleProvider volumePanProvider, AutoDisposeSampleProvider provider, PlaybackParameters parameters)
+        public MixerVoice(MemoryStream memoryStream, WaveFileReader waveReader, PitchAndSpeedSampleProvider pitchProvider, VolumePanSampleProvider volumePanProvider, ISampleProvider engineFormatProvider, AutoDisposeSampleProvider provider, PlaybackParameters parameters)
         {
             MemoryStream = memoryStream;
             WaveReader = waveReader;
@@ -64,7 +64,7 @@ namespace MarathonSoundsPlayer
             Provider = provider;
             Parameters = parameters;
 
-            mDryProvider = VolumePanProvider;
+            mDryProvider = engineFormatProvider;
 
             Effects = new ObservableCollection<IAudioEffect>();
             Effects.CollectionChanged += Effects_CollectionChanged;

@@ -356,15 +356,8 @@ namespace MarathonSoundsPlayer
         public SoundSource(SoundSourceType type, SoundsFileFormat format, SoundEngine soundEngine, SoundSlot soundSlot, double volume, double randomVolume, double randomVolumeOffset, double pitch, double randomPitch, double randomPitchOffset, double pan, double randomPan, double randomPanOffset,
             double frequency_Hz, double randomFrequency_Hz, double randomFrequencyOffset_Hz)
         {
-            if (soundEngine == null)
-            {
-                throw new ArgumentNullException(nameof(soundEngine));
-            }
-
-            if (soundSlot == null)
-            {
-                throw new ArgumentNullException(nameof(soundSlot));
-            }
+            ArgumentNullException.ThrowIfNull(soundEngine);
+            ArgumentNullException.ThrowIfNull(soundSlot);
 
             ValidatePositiveFinite(frequency_Hz, nameof(frequency_Hz));
             ValidateFinite(randomFrequency_Hz, nameof(randomFrequency_Hz));
@@ -588,10 +581,7 @@ namespace MarathonSoundsPlayer
 
         private OwnedSampleProvider CreateOwnedProvider(SoundPermutation sound, PlaybackParameters parameters)
         {
-            if (sound == null)
-            {
-                throw new ArgumentNullException(nameof(sound));
-            }
+            ArgumentNullException.ThrowIfNull(sound);
 
             if (sound.Data == null)
             {
@@ -793,10 +783,7 @@ namespace MarathonSoundsPlayer
 
         private MixerVoice CreateVoice(SoundPermutation sound, PlaybackParameters parameters)
         {
-            if (sound == null)
-            {
-                throw new ArgumentNullException(nameof(sound));
-            }
+            ArgumentNullException.ThrowIfNull(sound);
 
             if (sound.Data == null)
             {
@@ -839,7 +826,7 @@ namespace MarathonSoundsPlayer
 
                 AutoDisposeSampleProvider endingProvider = new AutoDisposeSampleProvider(engineFormatProvider, delegate { VoiceFinished(voice); });
 
-                voice = new MixerVoice(memoryStream, waveReader, pitchProvider, volumePanProvider, endingProvider, parameters);
+                voice = new MixerVoice(memoryStream, waveReader, pitchProvider, volumePanProvider, engineFormatProvider, endingProvider, parameters);
 
                 return voice;
             }
@@ -897,10 +884,7 @@ namespace MarathonSoundsPlayer
 
         private T GetRandomElement<T>(IList<T> list)
         {
-            if (list == null)
-            {
-                throw new ArgumentNullException(nameof(list));
-            }
+            ArgumentNullException.ThrowIfNull(list);
 
             if (list.Count == 0)
             {
