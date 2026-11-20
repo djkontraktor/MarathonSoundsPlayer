@@ -1,7 +1,4 @@
 ﻿using NAudio.Wave;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace MarathonSoundsPlayer
 {
@@ -57,23 +54,8 @@ namespace MarathonSoundsPlayer
 
         #region Public Members
 
-        public int Read(float[] buffer, int offset, int count)
+        public int Read(Span<float> buffer)
         {
-            if (buffer == null)
-            {
-                throw new ArgumentNullException(nameof(buffer));
-            }
-
-            if (offset < 0 || offset > buffer.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(offset));
-            }
-
-            if (count < 0 || offset + count > buffer.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count));
-            }
-
             lock (mSync)
             {
                 if (mDisposed || mStopped)
@@ -84,17 +66,20 @@ namespace MarathonSoundsPlayer
                 int totalSamplesRead = 0;
                 int consecutiveEmptyProviders = 0;
 
-                while (totalSamplesRead < count)
+                while (totalSamplesRead < buffer.Length)
                 {
                     if (mCurrentProvider == null)
                     {
                         mCurrentProvider = CreateNextProvider();
                     }
 
-                    int samplesRead = mCurrentProvider.Provider.Read(
-                        buffer,
-                        offset + totalSamplesRead,
-                        count - totalSamplesRead);
+                    /*
+                     * Give the provider only the unfilled portion of the
+                     * destination buffer.
+                     */
+                    Span<float> remainingBuffer = buffer.Slice(totalSamplesRead);
+
+                    int samplesRead = mCurrentProvider.Provider.Read(remainingBuffer);
 
                     if (samplesRead > 0)
                     {
@@ -116,12 +101,13 @@ namespace MarathonSoundsPlayer
                      */
                     if (consecutiveEmptyProviders >= 16)
                     {
-                        Array.Clear(
-                            buffer,
-                            offset + totalSamplesRead,
-                            count - totalSamplesRead);
+                        buffer.Slice(totalSamplesRead).Clear();
 
-                        return count;
+                        /*
+                         * The remaining buffer was filled with silence, so report
+                         * the entire requested buffer as supplied.
+                         */
+                        return buffer.Length;
                     }
                 }
 
