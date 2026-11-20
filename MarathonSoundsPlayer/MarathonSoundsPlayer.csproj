@@ -6,4 +6,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="3.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\MarathonFileUtils\MarathonFileUtils\MarathonFileUtils.csproj" />
+  </ItemGroup>
+
 </Project>
