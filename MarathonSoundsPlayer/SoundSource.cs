@@ -1,6 +1,9 @@
 ﻿using MarathonFileUtils.Sounds;
+using NAudio.Effects;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 
 namespace MarathonSoundsPlayer
 {
@@ -314,7 +317,11 @@ namespace MarathonSoundsPlayer
             }
         }
 
-        // Maybe effects here later?
+        public ObservableCollection<IAudioEffect> Effects
+        {
+            get;
+            set;
+        }
 
         #endregion
 
@@ -373,6 +380,8 @@ namespace MarathonSoundsPlayer
             mSourceType = type;
             mFormat = format;
             mCurrentSound = soundSlot;
+            Effects = new ObservableCollection<IAudioEffect>();
+            Effects.CollectionChanged += Effects_CollectionChanged;
 
             mVolume = ClampFinite(volume, 0.0, 1.0, nameof(volume));
             mRandomVolume = Math.Max(0.0, randomVolume);
@@ -559,6 +568,15 @@ namespace MarathonSoundsPlayer
         #endregion
 
         #region Private Members
+
+        private void Effects_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            lock (mSync)
+            {
+                ThrowIfDisposed();
+                UpdateActiveVoice();
+            }
+        }
 
         private OwnedSampleProvider CreateRandomOwnedProvider()
         {
@@ -870,6 +888,13 @@ namespace MarathonSoundsPlayer
             voice.VolumePanProvider.Volume = (float)voice.Parameters.Volume;
             voice.PitchProvider.PitchFactor = (float)voice.Parameters.Pitch;
             voice.VolumePanProvider.Pan = (float)voice.Parameters.Pan;
+
+            voice.Effects.Clear();
+
+            foreach (IAudioEffect effect in Effects)
+            {
+                voice.Effects.Add(effect);
+            }
         }
 
         private double GetRandomSignedValueUnsafe(double amount)
