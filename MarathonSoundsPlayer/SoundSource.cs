@@ -355,6 +355,7 @@ namespace MarathonSoundsPlayer
         private double mRandomFrequencyOffset_Hz;
         private CancellationTokenSource mSchedulerCancellation;
         private Task mSchedulerTask;
+        private EffectChain mAmbientEffectChain;
 
         #endregion
 
@@ -421,6 +422,8 @@ namespace MarathonSoundsPlayer
                     }
 
                     ContinuousRandomSampleProvider provider = new ContinuousRandomSampleProvider(mSoundEngine.WaveFormat, CreateRandomOwnedProvider);
+
+                    mAmbientEffectChain = new EffectChain(provider);
 
                     try
                     {
@@ -575,6 +578,19 @@ namespace MarathonSoundsPlayer
             {
                 ThrowIfDisposed();
                 UpdateActiveVoice();
+
+                if (SourceType.Equals(SoundSourceType.Ambient))
+                {
+                    for (int i = mAmbientEffectChain.Effects.Count - 1; i >= 0; i--)
+                    {
+                        mAmbientEffectChain.RemoveAt(i);
+                    }
+
+                    foreach (IAudioEffect effect in Effects)
+                    {
+                        mAmbientEffectChain.Add(effect);
+                    }
+                }
             }
         }
 
