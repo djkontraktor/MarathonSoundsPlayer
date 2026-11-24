@@ -1130,14 +1130,17 @@ namespace MarathonSoundsPlayer
 
         private void RebuildAmbientEffectChain()
         {
-            for (int i = mAmbientEffectChain.Effects.Count - 1; i >= 0; i--)
+            if (mAmbientEffectChain != null)
             {
-                mAmbientEffectChain.RemoveAt(i);
-            }
+                for (int i = mAmbientEffectChain.Effects.Count - 1; i >= 0; i--)
+                {
+                    mAmbientEffectChain.RemoveAt(i);
+                }
 
-            foreach (IAudioEffect effect in Effects)
-            {
-                mAmbientEffectChain.Add(effect);
+                foreach (IAudioEffect effect in Effects)
+                {
+                    mAmbientEffectChain.Add(effect);
+                }
             }
         }
 
