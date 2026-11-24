@@ -424,17 +424,18 @@ namespace MarathonSoundsPlayer
                     ContinuousRandomSampleProvider provider = new ContinuousRandomSampleProvider(mSoundEngine.WaveFormat, CreateRandomOwnedProvider);
 
                     mAmbientEffectChain = new EffectChain(provider);
+                    RebuildAmbientEffectChain();
 
                     try
                     {
                         mSoundEngine.ActivateSource(this);
-                        mSoundEngine.AddInput(provider);
+                        mSoundEngine.AddInput(mAmbientEffectChain);
                         mAmbientProvider = provider;
                     }
                     catch
                     {
                         SetStopped();
-                        mSoundEngine.RemoveInput(provider);
+                        mSoundEngine.RemoveInput(mAmbientEffectChain);
                         mSoundEngine.DeactivateSource(this);
                         provider.Dispose();
                         throw;
@@ -581,15 +582,7 @@ namespace MarathonSoundsPlayer
 
                 if (SourceType.Equals(SoundSourceType.Ambient))
                 {
-                    for (int i = mAmbientEffectChain.Effects.Count - 1; i >= 0; i--)
-                    {
-                        mAmbientEffectChain.RemoveAt(i);
-                    }
-
-                    foreach (IAudioEffect effect in Effects)
-                    {
-                        mAmbientEffectChain.Add(effect);
-                    }
+                    RebuildAmbientEffectChain();
                 }
             }
         }
@@ -1132,6 +1125,19 @@ namespace MarathonSoundsPlayer
             if (value <= 0.0)
             {
                 throw new ArgumentOutOfRangeException(parameterName, "Frequency must be greater than zero.");
+            }
+        }
+
+        private void RebuildAmbientEffectChain()
+        {
+            for (int i = mAmbientEffectChain.Effects.Count - 1; i >= 0; i--)
+            {
+                mAmbientEffectChain.RemoveAt(i);
+            }
+
+            foreach (IAudioEffect effect in Effects)
+            {
+                mAmbientEffectChain.Add(effect);
             }
         }
 
