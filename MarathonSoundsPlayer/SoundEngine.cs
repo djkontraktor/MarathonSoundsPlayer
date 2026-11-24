@@ -197,8 +197,7 @@ namespace MarathonSoundsPlayer
 
             if (ext.Equals(".snda"))
             {
-                SoundsFile = new M2SoundsFile(filePath);
-                mFormat = SoundsFileFormat.M2;
+                SoundsFile = new M2SoundsFile(filePath, out mFormat);
             }
             else if (ext.Equals(".sndz"))
             {
