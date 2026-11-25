@@ -1,12 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace MarathonSoundsPlayer
+﻿namespace MarathonSoundsPlayer
 {
     public enum SoundSourceType
     {
         Ambient,
         Random,
+    }
+
+    public enum PlatformStartStopType
+    {
+        StartOpen,
+        StartClose,
+        StopOpen,
+        StopClosed,
     }
 }
