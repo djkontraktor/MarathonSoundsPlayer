@@ -452,7 +452,7 @@ namespace MarathonSoundsPlayer.SoundBehavior
             mDistance_WU = properties.Distance_WU;
             mPeriod_s = properties.Period_s;
 
-            Effects.CollectionChanged += Effects_CollectionChanged;
+            Effects.CollectionChanged += PlatformEffects_CollectionChanged;
 
             mRetractedVolume = ClampFinite(properties.RetractedVolume, 0.0, 1.0, nameof(properties.RetractedVolume));
             mExtendedVolume = ClampFinite(properties.ExtendedVolume, 0.0, 1.0, nameof(properties.ExtendedVolume));
@@ -559,7 +559,7 @@ namespace MarathonSoundsPlayer.SoundBehavior
 
         #region Private Members
 
-        private void Effects_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        private void PlatformEffects_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             lock (mSync)
             {
