@@ -2,7 +2,6 @@
 using MarathonSoundsPlayer.Interfaces;
 using MarathonSoundsPlayer.SampleProviders;
 using MarathonSoundsPlayer.SoundProperties;
-using NAudio.Effects;
 using NAudio.Wave;
 using System.Collections.Specialized;
 
@@ -125,7 +124,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
                 {
                     ThrowIfDisposed();
                     mRetractedVolume = ClampFinite(value, 0.0, 1.0, nameof(value));
-                    UpdateActiveVoice();
                 }
             }
         }
@@ -145,7 +143,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
                 {
                     ThrowIfDisposed();
                     mExtendedVolume = ClampFinite(value, 0.0, 1.0, nameof(value));
-                    UpdateActiveVoice();
                 }
             }
         }
@@ -165,7 +162,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
                 {
                     ThrowIfDisposed();
                     mRetractedPan = ClampFinite(value, -1.0, 1.0, nameof(value));
-                    UpdateActiveVoice();
                 }
             }
         }
@@ -185,7 +181,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
                 {
                     ThrowIfDisposed();
                     mExtendedPan = ClampFinite(value, -1.0, 1.0, nameof(value));
-                    UpdateActiveVoice();
                 }
             }
         }
@@ -539,25 +534,11 @@ namespace MarathonSoundsPlayer.SoundBehavior
                 cancellation.Cancel();
             }
 
-            // Do not synchronously wait on schedulerTask here. Stop() may be
-            // called from a UI thread, and waiting is unnecessary because the
-            // cancellation token ends the scheduler promptly.
-            MixerVoice voice;
-
             lock (mSync)
             {
                 ThrowIfDisposed();
 
                 mPlaying = false;
-
-                voice = mActiveVoice;
-                mActiveVoice = null;
-            }
-
-            if (voice != null)
-            {
-                mSoundEngine.RemoveInput(voice.Provider);
-                voice.Dispose();
             }
 
             mSoundEngine.DeactivateSource(this);
@@ -583,13 +564,11 @@ namespace MarathonSoundsPlayer.SoundBehavior
             lock (mSync)
             {
                 ThrowIfDisposed();
-                UpdateActiveVoice();
             }
         }
 
         private void PlayPlatformStartStopSound(PlatformStartStopType platformEvent)
         {
-            MixerVoice previousVoice;
             MixerVoice newVoice;
 
             lock (mSync)
@@ -627,15 +606,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
                 // Construct the replacement before removing the current input.
                 // This minimizes the replacement interval.
                 newVoice = CreateVoice(selectedSound, parameters);
-
-                previousVoice = mActiveVoice;
-                mActiveVoice = newVoice;
-            }
-
-            if (previousVoice != null)
-            {
-                mSoundEngine.RemoveInput(previousVoice.Provider);
-                previousVoice.Dispose();
             }
 
             try
@@ -646,10 +616,7 @@ namespace MarathonSoundsPlayer.SoundBehavior
             {
                 lock (mSync)
                 {
-                    if (ReferenceEquals(mActiveVoice, newVoice))
-                    {
-                        mActiveVoice = null;
-                    }
+
                 }
 
                 newVoice.Dispose();
@@ -735,51 +702,12 @@ namespace MarathonSoundsPlayer.SoundBehavior
             }
         }
 
-        protected override void UpdateActiveVoice()
-        {
-            MixerVoice voice = mActiveVoice;
-
-            if (voice == null)
-            {
-                return;
-            }
-
-            double volumeRandomContribution = voice.Parameters.Volume - voice.Parameters.BaseVolumeAtStart;
-            double pitchRandomContribution = voice.Parameters.Pitch - voice.Parameters.BasePitchAtStart;
-            double panRandomContribution = voice.Parameters.Pan - voice.Parameters.BasePanAtStart;
-
-            voice.Parameters.Pitch = Clamp(mPitch + pitchRandomContribution, mMinimumPitch, mMaximumPitch);
-
-            voice.Parameters.BasePitchAtStart = mPitch;
-
-            voice.VolumePanProvider.Volume = (float)voice.Parameters.Volume;
-            voice.PitchProvider.PitchFactor = (float)voice.Parameters.Pitch;
-            voice.VolumePanProvider.Pan = (float)voice.Parameters.Pan;
-
-            voice.Effects.Clear();
-
-            foreach (IAudioEffect effect in Effects)
-            {
-                voice.Effects.Add(effect);
-            }
-        }
-
         private void FinishVoiceOutsideMixerRead(MixerVoice finishedVoice)
         {
             bool continuePlayback;
 
             lock (mSync)
             {
-                // If another sound was already assigned, this completion belongs
-                // to an obsolete voice and must not start another sound.
-                if (!ReferenceEquals(mActiveVoice, finishedVoice))
-                {
-                    finishedVoice.Dispose();
-                    return;
-                }
-
-                mActiveVoice = null;
-
                 continuePlayback = mPlaying && !mDisposed;
             }
 

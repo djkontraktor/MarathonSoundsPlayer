@@ -48,7 +48,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
                 {
                     ThrowIfDisposed();
                     mPitch = ClampFinite(value, mMinimumPitch, mMaximumPitch, nameof(value));
-                    UpdateActiveVoice();
                 }
             }
         }
@@ -78,7 +77,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
         protected readonly object mSync = new object();
         protected readonly Random mRng = new Random();
         protected SoundEngine mSoundEngine;
-        protected MixerVoice mActiveVoice;
         protected bool mDisposed;
         protected bool mPlaying;
         protected CancellationTokenSource mSchedulerCancellation;
@@ -104,8 +102,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
         #endregion
 
         #region Protected Members
-
-        protected abstract void UpdateActiveVoice();
 
         protected ISampleProvider ConvertToEngineFormat(ISampleProvider source)
         {
@@ -207,7 +203,7 @@ namespace MarathonSoundsPlayer.SoundBehavior
 
             if (value <= 0.0)
             {
-                throw new ArgumentOutOfRangeException(parameterName, "Frequency must be greater than zero.");
+                throw new ArgumentOutOfRangeException(parameterName, "Value must be greater than zero.");
             }
         }
 

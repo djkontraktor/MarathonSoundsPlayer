@@ -123,7 +123,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
             lock (mSync)
             {
                 ThrowIfDisposed();
-                UpdateActiveVoice();
                 RebuildAmbientEffectChain();
             }
         }
@@ -218,39 +217,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
                 BasePitchAtStart = mPitch,
                 BasePanAtStart = mPan
             };
-        }
-
-        protected override void UpdateActiveVoice()
-        {
-            MixerVoice voice = mActiveVoice;
-
-            if (voice == null)
-            {
-                return;
-            }
-
-            double volumeRandomContribution = voice.Parameters.Volume - voice.Parameters.BaseVolumeAtStart;
-            double pitchRandomContribution = voice.Parameters.Pitch - voice.Parameters.BasePitchAtStart;
-            double panRandomContribution = voice.Parameters.Pan - voice.Parameters.BasePanAtStart;
-
-            voice.Parameters.Volume = Clamp(mVolume + volumeRandomContribution, 0.0, 1.0);
-            voice.Parameters.Pitch = Clamp(mPitch + pitchRandomContribution, mMinimumPitch, mMaximumPitch);
-            voice.Parameters.Pan = Clamp(mPan + panRandomContribution, -1.0, 1.0);
-
-            voice.Parameters.BaseVolumeAtStart = mVolume;
-            voice.Parameters.BasePitchAtStart = mPitch;
-            voice.Parameters.BasePanAtStart = mPan;
-
-            voice.VolumePanProvider.Volume = (float)voice.Parameters.Volume;
-            voice.PitchProvider.PitchFactor = (float)voice.Parameters.Pitch;
-            voice.VolumePanProvider.Pan = (float)voice.Parameters.Pan;
-
-            voice.Effects.Clear();
-
-            foreach (IAudioEffect effect in Effects)
-            {
-                voice.Effects.Add(effect);
-            }
         }
 
         private OwnedSampleProvider CreateOwnedProvider(SoundPermutation sound, PlaybackParameters parameters)
