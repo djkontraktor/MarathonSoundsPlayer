@@ -1,35 +1,27 @@
 ﻿using MarathonFileUtils.Sounds;
+using MarathonSoundsPlayer.Interfaces;
+using MarathonSoundsPlayer.SampleProviders;
+using MarathonSoundsPlayer.SoundProperties;
 using NAudio.Effects;
 using NAudio.Wave;
-using NAudio.Wave.SampleProviders;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Text;
 
-namespace MarathonSoundsPlayer
+namespace MarathonSoundsPlayer.SoundBehavior
 {
-    public class PlatformSoundSource : IDisposable
+    public class PlatformSoundBehavior : SoundBehaviorBase, ISoundBehavior, IDisposable
     {
 
-        #region Public Properties
+        #region ISoundBehavior Members
 
-        public SoundsFileFormat Format
-        {
-            get
-            {
-                return mFormat;
-            }
-        }
+        #region Used
 
-        public SoundSlot PlatformStartOpenSound
+        public SoundSlot PlatformStartExtendSound
         {
             get
             {
                 lock (mSync)
                 {
-                    return mPlatformStartOpenSound;
+                    return mPlatformStartExtendSound;
                 }
             }
             set
@@ -37,18 +29,18 @@ namespace MarathonSoundsPlayer
                 lock (mSync)
                 {
                     ThrowIfDisposed();
-                    mPlatformStartOpenSound = value;
+                    mPlatformStartExtendSound = value;
                 }
             }
         }
 
-        public SoundSlot PlatformStartCloseSound
+        public SoundSlot PlatformStartRetractSound
         {
             get
             {
                 lock (mSync)
                 {
-                    return mPlatformStartCloseSound;
+                    return mPlatformStartRetractSound;
                 }
             }
             set
@@ -56,7 +48,45 @@ namespace MarathonSoundsPlayer
                 lock (mSync)
                 {
                     ThrowIfDisposed();
-                    mPlatformStartCloseSound = value;
+                    mPlatformStartRetractSound = value;
+                }
+            }
+        }
+
+        public SoundSlot PlatformStopExtendSound
+        {
+            get
+            {
+                lock (mSync)
+                {
+                    return mPlatformStopExtendSound;
+                }
+            }
+            set
+            {
+                lock (mSync)
+                {
+                    ThrowIfDisposed();
+                    mPlatformStopExtendSound = value;
+                }
+            }
+        }
+
+        public SoundSlot PlatformStopRetractSound
+        {
+            get
+            {
+                lock (mSync)
+                {
+                    return mPlatformStopRetractSound;
+                }
+            }
+            set
+            {
+                lock (mSync)
+                {
+                    ThrowIfDisposed();
+                    mPlatformStopRetractSound = value;
                 }
             }
         }
@@ -80,13 +110,13 @@ namespace MarathonSoundsPlayer
             }
         }
 
-        public SoundSlot PlatformStopOpenSound
+        public double RetractedVolume
         {
             get
             {
                 lock (mSync)
                 {
-                    return mPlatformStopOpenSound;
+                    return mRetractedVolume;
                 }
             }
             set
@@ -94,57 +124,19 @@ namespace MarathonSoundsPlayer
                 lock (mSync)
                 {
                     ThrowIfDisposed();
-                    mPlatformStopOpenSound = value;
-                }
-            }
-        }
-
-        public SoundSlot PlatformStopCloseSound
-        {
-            get
-            {
-                lock (mSync)
-                {
-                    return mPlatformStopCloseSound;
-                }
-            }
-            set
-            {
-                lock (mSync)
-                {
-                    ThrowIfDisposed();
-                    mPlatformStopCloseSound = value;
-                }
-            }
-        }
-
-        public double StartVolume
-        {
-            get
-            {
-                lock (mSync)
-                {
-                    return mStartVolume;
-                }
-            }
-            set
-            {
-                lock (mSync)
-                {
-                    ThrowIfDisposed();
-                    mStartVolume = ClampFinite(value, 0.0, 1.0, nameof(value));
+                    mRetractedVolume = ClampFinite(value, 0.0, 1.0, nameof(value));
                     UpdateActiveVoice();
                 }
             }
         }
 
-        public double StopVolume
+        public double ExtendedVolume
         {
             get
             {
                 lock (mSync)
                 {
-                    return mStopVolume;
+                    return mExtendedVolume;
                 }
             }
             set
@@ -152,19 +144,19 @@ namespace MarathonSoundsPlayer
                 lock (mSync)
                 {
                     ThrowIfDisposed();
-                    mStopVolume = ClampFinite(value, 0.0, 1.0, nameof(value));
+                    mExtendedVolume = ClampFinite(value, 0.0, 1.0, nameof(value));
                     UpdateActiveVoice();
                 }
             }
         }
 
-        public double Pitch
+        public double RetractedPan
         {
             get
             {
                 lock (mSync)
                 {
-                    return mPitch;
+                    return mRetractedPan;
                 }
             }
             set
@@ -172,19 +164,19 @@ namespace MarathonSoundsPlayer
                 lock (mSync)
                 {
                     ThrowIfDisposed();
-                    mPitch = ClampFinite(value, mMinimumPitch, mMaximumPitch, nameof(value));
+                    mRetractedPan = ClampFinite(value, -1.0, 1.0, nameof(value));
                     UpdateActiveVoice();
                 }
             }
         }
 
-        public double StartPan
+        public double ExtendedPan
         {
             get
             {
                 lock (mSync)
                 {
-                    return mStartPan;
+                    return mExtendedPan;
                 }
             }
             set
@@ -192,50 +184,19 @@ namespace MarathonSoundsPlayer
                 lock (mSync)
                 {
                     ThrowIfDisposed();
-                    mStartPan = ClampFinite(value, -1.0, 1.0, nameof(value));
+                    mExtendedPan = ClampFinite(value, -1.0, 1.0, nameof(value));
                     UpdateActiveVoice();
                 }
             }
         }
 
-        public double StopPan
+        public double ExtendSpeed_WU_s
         {
             get
             {
                 lock (mSync)
                 {
-                    return mStopPan;
-                }
-            }
-            set
-            {
-                lock (mSync)
-                {
-                    ThrowIfDisposed();
-                    mStopPan = ClampFinite(value, -1.0, 1.0, nameof(value));
-                    UpdateActiveVoice();
-                }
-            }
-        }
-
-        public bool Playing
-        {
-            get
-            {
-                lock (mSync)
-                {
-                    return mPlaying && !mDisposed;
-                }
-            }
-        }
-
-        public double OpenPlatformSpeed_WU_s
-        {
-            get
-            {
-                lock (mSync)
-                {
-                    return mOpenPlatformSpeed_WU_s;
+                    return mExtendSpeed_WU_s;
                 }
             }
             set
@@ -244,20 +205,20 @@ namespace MarathonSoundsPlayer
 
                 lock (mSync)
                 {
-                    mOpenPlatformSpeed_WU_s = value;
+                    mExtendSpeed_WU_s = value;
                 }
 
                 WakeScheduler();
             }
         }
 
-        public double ClosePlatformSpeed_WU_s
+        public double RetractSpeed_WU_s
         {
             get
             {
                 lock (mSync)
                 {
-                    return mClosePlatformSpeed_WU_s;
+                    return mRetractSpeed_WU_s;
                 }
             }
             set
@@ -266,115 +227,248 @@ namespace MarathonSoundsPlayer
 
                 lock (mSync)
                 {
-                    mClosePlatformSpeed_WU_s = value;
+                    mRetractSpeed_WU_s = value;
                 }
 
                 WakeScheduler();
             }
         }
 
-        public ObservableCollection<IAudioEffect> Effects
+        public double ExtendDelay_s
         {
-            get;
-            set;
+            get
+            {
+                lock (mSync)
+                {
+                    return mExtendDelay_s;
+                }
+            }
+            set
+            {
+                ValidatePositiveFinite(value, nameof(value));
+
+                lock (mSync)
+                {
+                    mExtendDelay_s = value;
+                }
+
+                WakeScheduler();
+            }
         }
+
+        public double RetractDelay_s
+        {
+            get
+            {
+                lock (mSync)
+                {
+                    return mRetractDelay_s;
+                }
+            }
+            set
+            {
+                ValidatePositiveFinite(value, nameof(value));
+
+                lock (mSync)
+                {
+                    mRetractDelay_s = value;
+                }
+
+                WakeScheduler();
+            }
+        }
+
+        public double Distance_WU
+        {
+            get
+            {
+                lock (mSync)
+                {
+                    return mDistance_WU;
+                }
+            }
+            set
+            {
+                ValidatePositiveFinite(value, nameof(value));
+
+                lock (mSync)
+                {
+                    mDistance_WU = value;
+                }
+
+                WakeScheduler();
+            }
+        }
+
+        public double Period_s
+        {
+            get
+            {
+                lock (mSync)
+                {
+                    return mPeriod_s;
+                }
+            }
+            set
+            {
+                ValidatePositiveFinite(value, nameof(value));
+
+                lock (mSync)
+                {
+                    mPeriod_s = value;
+                }
+
+                WakeScheduler();
+            }
+        }
+
+        public double RandomPeriod_s
+        {
+            get
+            {
+                lock (mSync)
+                {
+                    return mRandomPeriod_s;
+                }
+            }
+            set
+            {
+                lock (mSync)
+                {
+                    mRandomPeriod_s = Math.Max(0.0, value);
+                }
+
+                WakeScheduler();
+            }
+        }
+
+        public double RandomPeriodOffset_s
+        {
+            get
+            {
+                lock (mSync)
+                {
+                    return mRandomPeriodOffset_s;
+                }
+            }
+            set
+            {
+                lock (mSync)
+                {
+                    mRandomPeriodOffset_s = value;
+                }
+
+                WakeScheduler();
+            }
+        }
+
+        #endregion
+
+        #region Unused
+
+        public SoundSlot CurrentSound
+        {
+            get
+            {
+                return null;
+            }
+            set
+            {
+
+            }
+        }
+        public double Volume { get; set; }
+        public double RandomVolume { get; set; }
+        public double RandomVolumeOffset { get; set; }
+        public double RandomPitch { get; set; }
+        public double RandomPitchOffset { get; set; }
+        public double Pan { get; set; }
+        public double RandomPan { get; set; }
+        public double RandomPanOffset { get; set; }
+        public double Frequency_Hz { get; set; }
+        public double RandomFrequency_Hz { get; set; }
+        public double RandomFrequencyOffset_Hz { get; set; }
+
+        #endregion
 
         #endregion
 
         #region Private Properties
 
-        private const double mMinimumPitch = 0.5;
-        private const double mMaximumPitch = 2.0;
-        private SoundsFileFormat mFormat;
-        private SoundSourceType mSourceType;
-        private readonly object mSync = new object();
-        private readonly Random mRng = new Random();
-        private double mStartVolume;
-        private double mStopVolume;
-        private double mPitch;
-        private double mStartPan;
-        private double mStopPan;
-        private bool mPlaying;
-        private double mOpenPlatformSpeed_WU_s;
-        private double mClosePlatformSpeed_WU_s;
-        private double mOpenDelay_s;
-        private double mCloseDelay_s;
+        private SoundSlot mPlatformStartExtendSound;
+        private SoundSlot mPlatformStartRetractSound;
+        private SoundSlot mPlatformStopExtendSound;
+        private SoundSlot mPlatformStopRetractSound;
+        private SoundSlot mPlatformRunningSound;
+        private double mRetractedVolume;
+        private double mExtendedVolume;
+        private double mRetractedPan;
+        private double mExtendedPan;
+        private double mExtendSpeed_WU_s;
+        private double mRetractSpeed_WU_s;
+        private double mExtendDelay_s;
+        private double mRetractDelay_s;
+        private double mDistance_WU;
         private double mPeriod_s;
         private double mRandomPeriod_s;
         private double mRandomPeriodOffset_s;
-        private SoundSlot mPlatformStartOpenSound;
-        private SoundSlot mPlatformStartCloseSound;
-        private SoundSlot mPlatformRunningSound;
-        private SoundSlot mPlatformStopOpenSound;
-        private SoundSlot mPlatformStopCloseSound;
-        private SoundEngine mSoundEngine;
-        private MixerVoice mActiveVoice;
-        private CancellationTokenSource mSchedulerCancellation;
-        private Task mSchedulerTask;
-        private bool mDisposed;
 
         #endregion
 
         #region Constructor
 
-        public PlatformSoundSource(SoundSourceType type, SoundsFileFormat format, SoundEngine soundEngine,
-            SoundSlot platformStartOpenSound, SoundSlot platformStartCloseSound, SoundSlot platformRunningSound, SoundSlot platformStopOpenSound, SoundSlot platformStopCloseSound,
-            double startVolume, double stopVolume, double pitch, double startPan, double stopPan, double openPlatformSpeed_WU_s, double closePlatformSpeed_WU_s, double openDelay_s, double closeDelay_s, double period_s, double randomPeriod_s, double randomPeriodOffset_s)
+        public PlatformSoundBehavior(SoundPropertiesPlatform properties) :
+            base(properties)
         {
-            ArgumentNullException.ThrowIfNull(soundEngine);
-            ArgumentNullException.ThrowIfNull(platformStartOpenSound);
-            ArgumentNullException.ThrowIfNull(platformStartCloseSound);
-            ArgumentNullException.ThrowIfNull(platformRunningSound);
-            ArgumentNullException.ThrowIfNull(platformStopOpenSound);
-            ArgumentNullException.ThrowIfNull(platformStopCloseSound);
+            ArgumentNullException.ThrowIfNull(properties.PlatformStartExtendSound);
+            ArgumentNullException.ThrowIfNull(properties.PlatformStartRetractSound);
+            ArgumentNullException.ThrowIfNull(properties.PlatformStopExtendSound);
+            ArgumentNullException.ThrowIfNull(properties.PlatformStopRetractSound);
+            ArgumentNullException.ThrowIfNull(properties.PlatformRunningSound);
 
-            ValidatePositiveFinite(startVolume, nameof(startVolume));
-            ValidatePositiveFinite(stopVolume, nameof(stopVolume));
-            ValidatePositiveFinite(pitch, nameof(pitch));
-            ValidateFinite(startPan, nameof(startPan));
-            ValidateFinite(stopPan, nameof(stopPan));
-            ValidatePositiveFinite(openPlatformSpeed_WU_s, nameof(openPlatformSpeed_WU_s));
-            ValidatePositiveFinite(closePlatformSpeed_WU_s, nameof(closePlatformSpeed_WU_s));
-            ValidatePositiveFinite(openDelay_s, nameof(openDelay_s));
-            ValidatePositiveFinite(closeDelay_s, nameof(closeDelay_s));
-            ValidatePositiveFinite(period_s, nameof(period_s));
-            ValidateFinite(randomPeriod_s, nameof(randomPeriod_s));
-            ValidateFinite(randomPeriodOffset_s, nameof(randomPeriodOffset_s));
+            ValidatePositiveFinite(properties.RetractedVolume, nameof(properties.RetractedVolume));
+            ValidatePositiveFinite(properties.ExtendedVolume, nameof(properties.ExtendedVolume));
+            ValidateFinite(properties.RetractedPan, nameof(properties.RetractedPan));
+            ValidateFinite(properties.ExtendedPan, nameof(properties.ExtendedPan));
+            ValidatePositiveFinite(properties.ExtendSpeed_WU_s, nameof(properties.ExtendSpeed_WU_s));
+            ValidatePositiveFinite(properties.RetractSpeed_WU_s, nameof(properties.RetractSpeed_WU_s));
+            ValidatePositiveFinite(properties.ExtendDelay_s, nameof(properties.ExtendDelay_s));
+            ValidatePositiveFinite(properties.RetractDelay_s, nameof(properties.RetractDelay_s));
+            ValidatePositiveFinite(properties.Distance_WU, nameof(properties.Distance_WU));
+            ValidatePositiveFinite(properties.Period_s, nameof(properties.Period_s));
+            ValidateFinite(properties.RandomPeriod_s, nameof(properties.RandomPeriod_s));
+            ValidateFinite(properties.RandomPeriodOffset_s, nameof(properties.RandomPeriodOffset_s));
 
-            mSoundEngine = soundEngine;
-            mSourceType = type;
-            mFormat = format;
-            mPlatformStartOpenSound = platformStartOpenSound;
-            mPlatformStartCloseSound = platformStartCloseSound;
-            mPlatformRunningSound = platformRunningSound;
-            mPlatformStopOpenSound = platformStopOpenSound;
-            mPlatformStopCloseSound = platformStopCloseSound;
-            mStartVolume = startVolume;
-            mStopVolume = stopVolume;
-            mPitch = pitch;
-            mStartPan = startPan;
-            mStopPan = stopPan;
-            mOpenPlatformSpeed_WU_s = openPlatformSpeed_WU_s;
-            mClosePlatformSpeed_WU_s = closePlatformSpeed_WU_s;
-            mOpenDelay_s = openDelay_s;
-            mCloseDelay_s = closeDelay_s;
-            mPeriod_s = period_s;
+            mPlatformStartExtendSound = properties.PlatformStartExtendSound;
+            mPlatformStartRetractSound = properties.PlatformStartRetractSound;
+            mPlatformStopExtendSound = properties.PlatformStopExtendSound;
+            mPlatformStopRetractSound = properties.PlatformStopRetractSound;
+            mPlatformRunningSound = properties.PlatformRunningSound;
+            mSoundCatalog.Add("PlatformStartExtendSound", mPlatformStartExtendSound);
+            mSoundCatalog.Add("PlatformStartRetractSound", mPlatformStartRetractSound);
+            mSoundCatalog.Add("PlatformStopExtendSound", mPlatformStopExtendSound);
+            mSoundCatalog.Add("PlatformStopRetractSound", mPlatformStopRetractSound);
+            mSoundCatalog.Add("PlatformRunningSound", mPlatformRunningSound);
 
-            Effects = new ObservableCollection<IAudioEffect>();
+            mExtendSpeed_WU_s = properties.ExtendSpeed_WU_s;
+            mRetractSpeed_WU_s = properties.RetractSpeed_WU_s;
+            mExtendDelay_s = properties.ExtendDelay_s;
+            mRetractDelay_s = properties.RetractDelay_s;
+            mDistance_WU = properties.Distance_WU;
+            mPeriod_s = properties.Period_s;
+
             Effects.CollectionChanged += Effects_CollectionChanged;
 
-            mStartVolume = ClampFinite(startVolume, 0.0, 1.0, nameof(startVolume));
-            mStopVolume = ClampFinite(stopVolume, 0.0, 1.0, nameof(stopVolume));
-            mPitch = ClampFinite(pitch, mMinimumPitch, mMaximumPitch, nameof(pitch));
-            mStartPan = ClampFinite(startPan, -1.0, 1.0, nameof(startPan));
-            mStopPan = ClampFinite(stopPan, -1.0, 1.0, nameof(stopPan));
+            mRetractedVolume = ClampFinite(properties.RetractedVolume, 0.0, 1.0, nameof(properties.RetractedVolume));
+            mExtendedVolume = ClampFinite(properties.ExtendedVolume, 0.0, 1.0, nameof(properties.ExtendedVolume));
+            mRetractedPan = ClampFinite(properties.RetractedPan, -1.0, 1.0, nameof(properties.RetractedPan));
+            mExtendedPan = ClampFinite(properties.ExtendedPan, -1.0, 1.0, nameof(properties.ExtendedPan));
 
-            mRandomPeriod_s = Math.Max(0.0, randomPeriod_s);
-            mRandomPeriodOffset_s = randomPeriodOffset_s;
+            mRandomPeriod_s = Math.Max(0.0, properties.RandomPeriod_s);
+            mRandomPeriodOffset_s = properties.RandomPeriodOffset_s;
         }
 
         #endregion
-
 
         #region Public Members
 
@@ -408,7 +502,7 @@ namespace MarathonSoundsPlayer
                 try
                 {
                     mSoundEngine.ActivateSource(this);
-                    PlayPlatformStartStopSound(PlatformStartStopType.StartOpen);
+                    PlayPlatformStartStopSound(PlatformStartStopType.StartExtend);
                 }
                 catch
                 {
@@ -511,17 +605,17 @@ namespace MarathonSoundsPlayer
 
                 switch (platformEvent)
                 {
-                    case PlatformStartStopType.StartOpen:
-                        eventSound = mPlatformStartOpenSound;
+                    case PlatformStartStopType.StartExtend:
+                        eventSound = mPlatformStartExtendSound;
                         break;
-                    case PlatformStartStopType.StartClose:
-                        eventSound = mPlatformStartOpenSound;
+                    case PlatformStartStopType.StartRetract:
+                        eventSound = mPlatformStartRetractSound;
                         break;
-                    case PlatformStartStopType.StopOpen:
-                        eventSound = mPlatformStartOpenSound;
+                    case PlatformStartStopType.StopExtend:
+                        eventSound = mPlatformStopExtendSound;
                         break;
-                    case PlatformStartStopType.StopClosed:
-                        eventSound = mPlatformStartOpenSound;
+                    case PlatformStartStopType.StopRetract:
+                        eventSound = mPlatformStopRetractSound;
                         break;
                     default:
                         throw new ArgumentException("Invalid platform event");
@@ -574,61 +668,6 @@ namespace MarathonSoundsPlayer
             // Read() operation. Do not dispose the current provider or add a new
             // mixer input until that Read() has returned.
             ThreadPool.QueueUserWorkItem(delegate { FinishVoiceOutsideMixerRead(finishedVoice); });
-        }
-
-        /// <summary>
-        /// Called after a voice finishes naturally or stops with an error.
-        /// </summary>
-        private void OnVoiceFinished(Exception exception)
-        {
-            if (exception != null)
-            {
-                OnPlaybackError(exception);
-            }
-        }
-
-        private void OnPlaybackError(Exception exception)
-        {
-            // Add application logging here if desired.
-            // Debug.WriteLine(exception);
-        }
-
-        private double NextRandomSignedValue(double amount)
-        {
-            lock (mSync)
-            {
-                ValidateFinite(amount, nameof(amount));
-
-                if (amount <= 0.0)
-                {
-                    return 0.0;
-                }
-
-                return ((mRng.NextDouble() * 2.0) - 1.0) * amount;
-            }
-        }
-
-        private static double Clamp(double value, double minimum, double maximum)
-        {
-            if (value < minimum)
-            {
-                return minimum;
-            }
-
-            if (value > maximum)
-            {
-                return maximum;
-            }
-
-            return value;
-        }
-
-        private static void ValidateFinite(double value, string parameterName)
-        {
-            if (double.IsNaN(value) || double.IsInfinity(value))
-            {
-                throw new ArgumentOutOfRangeException(parameterName, "The value must be a finite number.");
-            }
         }
 
         private MixerVoice CreateVoice(SoundPermutation sound, PlaybackParameters parameters)
@@ -696,7 +735,7 @@ namespace MarathonSoundsPlayer
             }
         }
 
-        private void UpdateActiveVoice()
+        protected override void UpdateActiveVoice()
         {
             MixerVoice voice = mActiveVoice;
 
@@ -723,70 +762,6 @@ namespace MarathonSoundsPlayer
             {
                 voice.Effects.Add(effect);
             }
-        }
-
-        private double GetRandomSignedValueUnsafe(double amount)
-        {
-            if (amount <= 0.0)
-            {
-                return 0.0;
-            }
-
-            return ((mRng.NextDouble() * 2.0) - 1.0) * amount;
-        }
-
-        private T GetRandomElement<T>(IList<T> list)
-        {
-            ArgumentNullException.ThrowIfNull(list);
-
-            if (list.Count == 0)
-            {
-                throw new InvalidOperationException("Cannot select an element from an empty list.");
-            }
-
-            return list[mRng.Next(list.Count)];
-        }
-
-        private static double ClampFinite(double value, double minimum, double maximum, string parameterName)
-        {
-            ValidateFinite(value, parameterName);
-            return Clamp(value, minimum, maximum);
-        }
-
-        private void ThrowIfDisposed()
-        {
-            if (mDisposed)
-            {
-                throw new ObjectDisposedException(nameof(SoundSource));
-            }
-        }
-
-        private ISampleProvider ConvertToEngineFormat(ISampleProvider source)
-        {
-            if (source == null)
-            {
-                throw new ArgumentNullException(nameof(source));
-            }
-
-            ISampleProvider converted = source;
-
-            // VolumePanSampleProvider should already output stereo, but retain this
-            // validation in case the provider chain changes later.
-            if (converted.WaveFormat.Channels == 1)
-            {
-                converted = new MonoToStereoSampleProvider(converted);
-            }
-            else if (converted.WaveFormat.Channels != 2)
-            {
-                throw new NotSupportedException("Only mono and stereo audio is supported.");
-            }
-
-            if (converted.WaveFormat.SampleRate != mSoundEngine.WaveFormat.SampleRate)
-            {
-                converted = new WdlResamplingSampleProvider(converted, mSoundEngine.WaveFormat.SampleRate);
-            }
-
-            return converted;
         }
 
         private void FinishVoiceOutsideMixerRead(MixerVoice finishedVoice)
@@ -831,31 +806,6 @@ namespace MarathonSoundsPlayer
             }
         }
 
-        private bool TrySetStarted()
-        {
-            lock (mSync)
-            {
-                ThrowIfDisposed();
-
-                if (mPlaying)
-                {
-                    return false;
-                }
-
-                mPlaying = true;
-
-                return true;
-            }
-        }
-
-        private void SetStopped()
-        {
-            lock (mSync)
-            {
-                mPlaying = false;
-            }
-        }
-
         private async Task RunSchedulerAsync(CancellationToken cancellationToken)
         {
             try
@@ -874,7 +824,7 @@ namespace MarathonSoundsPlayer
                     // This starts a new voice without stopping any voice that is
                     // already running. Random volume, pitch, and pan are selected
                     // independently for this trigger.
-                    PlayPlatformStartStopSound(PlatformStartStopType.StopOpen);
+                    PlayPlatformStartStopSound(PlatformStartStopType.StopExtend);
                 }
             }
             catch (OperationCanceledException)
@@ -917,16 +867,6 @@ namespace MarathonSoundsPlayer
              * If you want changes to reset the current delay immediately, use a
              * separate scheduler wake CancellationTokenSource.
              */
-        }
-
-        private static void ValidatePositiveFinite(double value, string parameterName)
-        {
-            ValidateFinite(value, parameterName);
-
-            if (value <= 0.0)
-            {
-                throw new ArgumentOutOfRangeException(parameterName, "Frequency must be greater than zero.");
-            }
         }
 
         #endregion

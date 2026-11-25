@@ -1,6 +1,6 @@
 ﻿using NAudio.Wave;
 
-namespace MarathonSoundsPlayer
+namespace MarathonSoundsPlayer.SampleProviders
 {
     /// <summary>
     /// Maintains one permanent mixer input and switches to a newly created

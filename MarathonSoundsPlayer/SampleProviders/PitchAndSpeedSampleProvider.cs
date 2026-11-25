@@ -1,7 +1,7 @@
 ﻿using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 
-namespace MarathonSoundsPlayer
+namespace MarathonSoundsPlayer.SampleProviders
 {
     public class PitchAndSpeedSampleProvider : ISampleProvider
     {

@@ -1,6 +1,6 @@
 ﻿using NAudio.Wave;
 
-namespace MarathonSoundsPlayer
+namespace MarathonSoundsPlayer.SampleProviders
 {
     public class VolumePanSampleProvider : ISampleProvider
     {

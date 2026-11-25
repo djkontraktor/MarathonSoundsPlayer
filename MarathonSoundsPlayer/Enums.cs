@@ -4,13 +4,14 @@
     {
         Ambient,
         Random,
+        Platform,
     }
 
     public enum PlatformStartStopType
     {
-        StartOpen,
-        StartClose,
-        StopOpen,
-        StopClosed,
+        StartExtend,
+        StartRetract,
+        StopExtend,
+        StopRetract,
     }
 }

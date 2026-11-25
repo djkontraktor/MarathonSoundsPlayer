@@ -1,4 +1,5 @@
-﻿using NAudio.Effects;
+﻿using MarathonSoundsPlayer.SampleProviders;
+using NAudio.Effects;
 using NAudio.Wave;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;

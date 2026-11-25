@@ -1,6 +1,11 @@
 ﻿using MarathonFileUtils.Sounds;
+using MarathonSoundsPlayer.Interfaces;
+using MarathonSoundsPlayer.SoundBehavior;
+using MarathonSoundsPlayer.SoundProperties;
+using NAudio.Effects;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Xml;
 using System.Xml.Linq;
@@ -287,12 +292,40 @@ namespace MarathonSoundsPlayer
                     throw new InvalidDataException("No SoundSlot could be created for index " + soundSlotIndex.ToString(CultureInfo.InvariantCulture) + ".");
                 }
 
+                ISoundBehavior behavior;
+
+                switch (sourceType)
+                {
+                    case SoundSourceType.Ambient:
+
+                        EnvironmentalSoundProperties ambientProperties = new EnvironmentalSoundProperties(this, soundSlot, volume, randomVolume, randomVolumeOffset, pitch, randomPitch, randomPitchOffset, pan, randomPan, randomPanOffset, new ObservableCollection<IAudioEffect>());
+                        behavior = new AmbientSoundBehavior(ambientProperties);
+
+                        break;
+                    case SoundSourceType.Random:
+
+                        RandomSoundProperties randomProperties = new RandomSoundProperties(this, soundSlot, volume, randomVolume, randomVolumeOffset, pitch, randomPitch, randomPitchOffset, pan, randomPan, randomPanOffset, frequency_Hz, randomFrequency_Hz, randomFrequencyOffset_Hz, new ObservableCollection<IAudioEffect>());
+                        behavior = new RandomSoundBehavior(randomProperties);
+
+                        break;
+
+                    case SoundSourceType.Platform:
+
+                        SoundPropertiesPlatform platformProperties = new SoundPropertiesPlatform(this, soundSlot, soundSlot, soundSlot, soundSlot, soundSlot, volume, volume, pitch, pan, pan, 1, 1, 0, 0, 1, 1, 0, 0, new ObservableCollection<IAudioEffect>());
+                        behavior = new PlatformSoundBehavior(platformProperties);
+
+                        break;
+
+                    default:
+                        throw new XmlException("Could not load a valid SourceType from .soundsource file.");
+                }
+
                 /*
                  * Assign SourceType last if changing it can stop and restart
                  * the SoundSource. The newly created source should normally
                  * not be playing, but this order minimizes side effects.
                  */
-                SoundSource soundSource = new SoundSource(sourceType, mFormat, this, soundSlot, volume, randomVolume, randomVolumeOffset, pitch, randomPitch, randomPitchOffset, pan, randomPan, randomPanOffset, frequency_Hz, randomFrequency_Hz, randomFrequencyOffset_Hz);
+                SoundSource soundSource = new SoundSource(behavior);
 
                 soundSources.Add(soundSource);
             }
@@ -316,28 +349,45 @@ namespace MarathonSoundsPlayer
                     throw new InvalidDataException("The sound-source list contains a null item at index " + index.ToString(CultureInfo.InvariantCulture) + ".");
                 }
 
-                if (soundSource.CurrentSound == null)
+                if (soundSource.SoundBehavior.CurrentSound == null)
                 {
                     throw new InvalidDataException("The SoundSource at list index " + index.ToString(CultureInfo.InvariantCulture) + " does not have a CurrentSound.");
+                }
+
+                SoundSourceType sourceType;
+
+                switch (soundSource.SoundBehavior)
+                {
+                    case (AmbientSoundBehavior amb):
+                        sourceType = SoundSourceType.Ambient;
+                        break;
+                    case (RandomSoundBehavior rand):
+                        sourceType = SoundSourceType.Random;
+                        break;
+                    case (PlatformSoundBehavior plat):
+                        sourceType = SoundSourceType.Platform;
+                        break;
+                    default:
+                        throw new InvalidDataException("This sound behavior has not yet been implemented.");
                 }
 
                 sourcesElement.Add(
                     new XElement(
                         "SoundSource",
-                        new XElement("SourceType", soundSource.SourceType.ToString()),
-                        new XElement("SoundSlotIndex", soundSource.CurrentSound.ID.Index),
-                        new XElement("Volume", FormatDouble(soundSource.Volume)),
-                        new XElement("RandomVolume", FormatDouble(soundSource.RandomVolume)),
-                        new XElement("RandomVolumeOffset", FormatDouble(soundSource.RandomVolumeOffset)),
-                        new XElement("Pitch", FormatDouble(soundSource.Pitch)),
-                        new XElement("RandomPitch", FormatDouble(soundSource.RandomPitch)),
-                        new XElement("RandomPitchOffset", FormatDouble(soundSource.RandomPitchOffset)),
-                        new XElement("Pan", FormatDouble(soundSource.Pan)),
-                        new XElement("RandomPan", FormatDouble(soundSource.RandomPan)),
-                        new XElement("RandomPanOffset", FormatDouble(soundSource.RandomPanOffset)),
-                        new XElement("Frequency_Hz", FormatDouble(soundSource.Frequency_Hz)),
-                        new XElement("RandomFrequency_Hz", FormatDouble(soundSource.RandomFrequency_Hz)),
-                        new XElement("RandomFrequencyOffset_Hz", FormatDouble(soundSource.RandomFrequencyOffset_Hz))));
+                        new XElement("SourceType", sourceType.ToString()),
+                        new XElement("SoundSlotIndex", soundSource.SoundBehavior.CurrentSound.ID.Index),
+                        new XElement("Volume", FormatDouble(soundSource.SoundBehavior.Volume)),
+                        new XElement("RandomVolume", FormatDouble(soundSource.SoundBehavior.RandomVolume)),
+                        new XElement("RandomVolumeOffset", FormatDouble(soundSource.SoundBehavior.RandomVolumeOffset)),
+                        new XElement("Pitch", FormatDouble(soundSource.SoundBehavior.Pitch)),
+                        new XElement("RandomPitch", FormatDouble(soundSource.SoundBehavior.RandomPitch)),
+                        new XElement("RandomPitchOffset", FormatDouble(soundSource.SoundBehavior.RandomPitchOffset)),
+                        new XElement("Pan", FormatDouble(soundSource.SoundBehavior.Pan)),
+                        new XElement("RandomPan", FormatDouble(soundSource.SoundBehavior.RandomPan)),
+                        new XElement("RandomPanOffset", FormatDouble(soundSource.SoundBehavior.RandomPanOffset)),
+                        new XElement("Frequency_Hz", FormatDouble(soundSource.SoundBehavior.Frequency_Hz)),
+                        new XElement("RandomFrequency_Hz", FormatDouble(soundSource.SoundBehavior.RandomFrequency_Hz)),
+                        new XElement("RandomFrequencyOffset_Hz", FormatDouble(soundSource.SoundBehavior.RandomFrequencyOffset_Hz))));
             }
 
             XDocument document = new XDocument(new XDeclaration("1.0", "utf-8", null), new XElement("Soundscape", new XElement("SoundsFilePath", mSoundsFilePath), sourcesElement));
