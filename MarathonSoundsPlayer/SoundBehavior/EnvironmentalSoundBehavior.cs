@@ -1,4 +1,4 @@
-﻿using MarathonFileUtils.Sounds;
+﻿using MarathonFileUtils.Sounds.DataStructures;
 using MarathonSoundsPlayer.SoundProperties;
 using NAudio.Effects;
 
