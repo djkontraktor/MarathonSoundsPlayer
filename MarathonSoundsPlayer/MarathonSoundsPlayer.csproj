@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\MarathonFileUtils\MarathonFileUtils\MarathonFileUtils.csproj" />
+    <ProjectReference Include="..\..\MarathonFileUtils\MarathonFileUtils.csproj" />
   </ItemGroup>
 
 </Project>
