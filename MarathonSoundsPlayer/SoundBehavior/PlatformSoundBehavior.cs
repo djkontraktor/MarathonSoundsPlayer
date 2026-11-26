@@ -295,83 +295,11 @@ namespace MarathonSoundsPlayer.SoundBehavior
             }
         }
 
-        public double Period_s
-        {
-            get
-            {
-                lock (mSync)
-                {
-                    return mPeriod_s;
-                }
-            }
-            set
-            {
-                ValidatePositiveFinite(value, nameof(value));
-
-                lock (mSync)
-                {
-                    mPeriod_s = value;
-                }
-
-                WakeScheduler();
-            }
-        }
-
-        public double RandomPeriod_s
-        {
-            get
-            {
-                lock (mSync)
-                {
-                    return mRandomPeriod_s;
-                }
-            }
-            set
-            {
-                lock (mSync)
-                {
-                    mRandomPeriod_s = Math.Max(0.0, value);
-                }
-
-                WakeScheduler();
-            }
-        }
-
-        public double RandomPeriodOffset_s
-        {
-            get
-            {
-                lock (mSync)
-                {
-                    return mRandomPeriodOffset_s;
-                }
-            }
-            set
-            {
-                lock (mSync)
-                {
-                    mRandomPeriodOffset_s = value;
-                }
-
-                WakeScheduler();
-            }
-        }
-
         #endregion
 
         #region Unused
 
-        public SoundSlot CurrentSound
-        {
-            get
-            {
-                return null;
-            }
-            set
-            {
-
-            }
-        }
+        public SoundSlot CurrentSound { get; set; }
         public double Volume { get; set; }
         public double RandomVolume { get; set; }
         public double RandomVolumeOffset { get; set; }
@@ -404,9 +332,8 @@ namespace MarathonSoundsPlayer.SoundBehavior
         private double mExtendDelay_s;
         private double mRetractDelay_s;
         private double mDistance_WU;
-        private double mPeriod_s;
-        private double mRandomPeriod_s;
-        private double mRandomPeriodOffset_s;
+        private MixerVoice mActiveVoice;
+        PlatformSimulation mPlatform;
 
         #endregion
 
@@ -430,9 +357,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
             ValidatePositiveFinite(properties.ExtendDelay_s, nameof(properties.ExtendDelay_s));
             ValidatePositiveFinite(properties.RetractDelay_s, nameof(properties.RetractDelay_s));
             ValidatePositiveFinite(properties.Distance_WU, nameof(properties.Distance_WU));
-            ValidatePositiveFinite(properties.Period_s, nameof(properties.Period_s));
-            ValidateFinite(properties.RandomPeriod_s, nameof(properties.RandomPeriod_s));
-            ValidateFinite(properties.RandomPeriodOffset_s, nameof(properties.RandomPeriodOffset_s));
 
             mPlatformStartExtendSound = properties.PlatformStartExtendSound;
             mPlatformStartRetractSound = properties.PlatformStartRetractSound;
@@ -450,7 +374,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
             mExtendDelay_s = properties.ExtendDelay_s;
             mRetractDelay_s = properties.RetractDelay_s;
             mDistance_WU = properties.Distance_WU;
-            mPeriod_s = properties.Period_s;
 
             Effects.CollectionChanged += PlatformEffects_CollectionChanged;
 
@@ -459,16 +382,34 @@ namespace MarathonSoundsPlayer.SoundBehavior
             mRetractedPan = ClampFinite(properties.RetractedPan, -1.0, 1.0, nameof(properties.RetractedPan));
             mExtendedPan = ClampFinite(properties.ExtendedPan, -1.0, 1.0, nameof(properties.ExtendedPan));
 
-            mRandomPeriod_s = Math.Max(0.0, properties.RandomPeriod_s);
-            mRandomPeriodOffset_s = properties.RandomPeriodOffset_s;
+            mPlatform = new PlatformSimulation(mDistance_WU, mExtendSpeed_WU_s, mExtendDelay_s, mRetractDelay_s,
+            delegate
+            {
+                PlayPlatformStartStopSound(PlatformStartStopType.StartExtend);
+            },
+            delegate
+            {
+                PlayPlatformStartStopSound(PlatformStartStopType.StopExtend);
+            },
+            delegate
+            {
+                PlayPlatformStartStopSound(PlatformStartStopType.StartRetract);
+            },
+            delegate
+            {
+                PlayPlatformStartStopSound(PlatformStartStopType.StopRetract);
+            });
         }
 
         #endregion
 
         #region Public Members
 
-        public void Start()
+        public async void Start()
         {
+            // Runs until simulation.Stop() or simulation.Reset() is called.
+            mPlatform.RunAsync(TimeSpan.FromMilliseconds(10));
+
             lock (mSync)
             {
                 if (mSchedulerTask != null && !mSchedulerTask.IsCompleted)
@@ -510,15 +451,15 @@ namespace MarathonSoundsPlayer.SoundBehavior
 
                     throw;
                 }
-
-                mSchedulerTask = Task.Run(() => RunSchedulerAsync(token), token);
             }
         }
 
-        public void Stop()
+        public async void Stop()
         {
             CancellationTokenSource cancellation;
             Task schedulerTask;
+
+            mPlatform.Stop();
 
             lock (mSync)
             {
@@ -603,6 +544,7 @@ namespace MarathonSoundsPlayer.SoundBehavior
                 SoundPermutation selectedSound = GetRandomElement(eventSound.Samples);
                 PlaybackParameters parameters = new PlaybackParameters();
 
+                PlaySoundSingle(eventSound);
                 // Construct the replacement before removing the current input.
                 // This minimizes the replacement interval.
                 newVoice = CreateVoice(selectedSound, parameters);
@@ -622,6 +564,71 @@ namespace MarathonSoundsPlayer.SoundBehavior
                 newVoice.Dispose();
                 throw;
             }
+        }
+
+        private void PlaySoundSingle(SoundSlot soundSlot)
+        {
+            MixerVoice previousVoice;
+            MixerVoice newVoice;
+
+            lock (mSync)
+            {
+                ThrowIfDisposed();
+
+                if (!mPlaying)
+                {
+                    return;
+                }
+
+                ValidateSoundSlot(soundSlot);
+
+                SoundPermutation selectedSound = GetRandomElement(soundSlot.Samples);
+                PlaybackParameters parameters = CreatePlatformPlaybackParameters();
+
+                // Construct the replacement before removing the current input.
+                // This minimizes the replacement interval.
+                newVoice = CreateVoice(selectedSound, parameters);
+
+                previousVoice = mActiveVoice;
+                mActiveVoice = newVoice;
+            }
+
+            if (previousVoice != null)
+            {
+                mSoundEngine.RemoveInput(previousVoice.Provider);
+                previousVoice.Dispose();
+            }
+
+            try
+            {
+                mSoundEngine.AddInput(newVoice.Provider);
+            }
+            catch
+            {
+                lock (mSync)
+                {
+                    if (ReferenceEquals(mActiveVoice, newVoice))
+                    {
+                        mActiveVoice = null;
+                    }
+                }
+
+                newVoice.Dispose();
+                throw;
+            }
+        }
+
+        protected PlaybackParameters CreatePlatformPlaybackParameters()
+        {
+            return new PlaybackParameters
+            {
+                Volume = mRetractedVolume,
+                Pitch = mPitch,
+                Pan = mRetractedPan,
+                BaseVolumeAtStart = mRetractedVolume,
+                BasePitchAtStart = mPitch,
+                BasePanAtStart = mRetractedPan,
+            };
         }
 
         private void VoiceFinished(MixerVoice finishedVoice)
@@ -667,6 +674,11 @@ namespace MarathonSoundsPlayer.SoundBehavior
 
                 waveReader = new WaveFileReader(memoryStream);
                 ISampleProvider sourceProvider = waveReader.ToSampleProvider();
+
+                if (parameters.Pitch <= 0)
+                {
+                    parameters.Pitch = 1;
+                }
 
                 PitchAndSpeedSampleProvider pitchProvider = new PitchAndSpeedSampleProvider(sourceProvider, (float)parameters.Pitch);
 
@@ -732,58 +744,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
             {
                 OnPlaybackError(exception);
             }
-        }
-
-        private async Task RunSchedulerAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-                while (!cancellationToken.IsCancellationRequested && Playing)
-                {
-                    TimeSpan delay = GetNextTriggerDelay();
-
-                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-
-                    if (cancellationToken.IsCancellationRequested || !Playing)
-                    {
-                        break;
-                    }
-
-                    // This starts a new voice without stopping any voice that is
-                    // already running. Random volume, pitch, and pan are selected
-                    // independently for this trigger.
-                    PlayPlatformStartStopSound(PlatformStartStopType.StopExtend);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected when Stop() is called.
-            }
-            catch (ObjectDisposedException)
-            {
-                // Expected if disposal races with the scheduler.
-            }
-            catch (Exception exception)
-            {
-                OnPlaybackError(exception);
-            }
-        }
-
-        private TimeSpan GetNextTriggerDelay()
-        {
-            double basePeriod_s;
-            double randomPeriod_s;
-            double randomPeriodOffset_s;
-
-            lock (mSync)
-            {
-                basePeriod_s = mPeriod_s;
-                randomPeriod_s = mRandomPeriod_s;
-                randomPeriodOffset_s = mRandomPeriodOffset_s;
-            }
-
-            double effectivePeriod_s = basePeriod_s + randomPeriodOffset_s + NextRandomSignedValue(randomPeriod_s);
-            return TimeSpan.FromSeconds(effectivePeriod_s);
         }
 
         private void WakeScheduler()

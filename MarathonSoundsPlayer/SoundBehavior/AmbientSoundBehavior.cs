@@ -29,6 +29,10 @@ namespace MarathonSoundsPlayer.SoundBehavior
         public double Period_s { get; set; }
         public double RandomPeriod_s { get; set; }
         public double RandomPeriodOffset_s { get; set; }
+        public SoundSlot PlatformStartExtendSound { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public SoundSlot PlatformStopExtendSound { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public SoundSlot PlatformStartRetractSound { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public SoundSlot PlatformStopRetractSound { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         #endregion
 

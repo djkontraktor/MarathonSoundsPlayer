@@ -207,6 +207,19 @@ namespace MarathonSoundsPlayer.SoundBehavior
             }
         }
 
+        protected static void ValidateSoundSlot(SoundSlot soundSlot)
+        {
+            if (soundSlot == null)
+            {
+                throw new InvalidOperationException("A sound slot has not been assigned.");
+            }
+
+            if (soundSlot.Samples == null || soundSlot.Samples.Count == 0)
+            {
+                throw new InvalidOperationException("The SoundSlot does not contain any samples.");
+            }
+        }
+
         protected void ThrowIfDisposed()
         {
             if (mDisposed)

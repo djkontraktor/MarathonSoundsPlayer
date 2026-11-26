@@ -14,4 +14,14 @@
         StopExtend,
         StopRetract,
     }
+
+    public enum PlatformState
+    {
+        Stopped,
+        RetractedDelay,
+        Extending,
+        ExtendedDelay,
+        Retracting,
+    }
+
 }

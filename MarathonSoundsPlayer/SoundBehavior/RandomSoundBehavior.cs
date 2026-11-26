@@ -97,6 +97,10 @@ namespace MarathonSoundsPlayer.SoundBehavior
         public double Period_s { get; set; }
         public double RandomPeriod_s { get; set; }
         public double RandomPeriodOffset_s { get; set; }
+        public SoundSlot PlatformStartExtendSound { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public SoundSlot PlatformStopExtendSound { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public SoundSlot PlatformStartRetractSound { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public SoundSlot PlatformStopRetractSound { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         #endregion
 
@@ -157,7 +161,7 @@ namespace MarathonSoundsPlayer.SoundBehavior
                         return;
                     }
 
-                    ValidateSoundSlot();
+                    ValidateSoundSlot(mCurrentSound);
                     mPlaying = true;
                 }
 
@@ -263,7 +267,7 @@ namespace MarathonSoundsPlayer.SoundBehavior
                     return;
                 }
 
-                ValidateSoundSlot();
+                ValidateSoundSlot(mCurrentSound);
 
                 SoundPermutation selectedSound = GetRandomElement(mCurrentSound.Samples);
                 PlaybackParameters parameters = CreateRandomPlaybackParameters();
@@ -312,23 +316,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
             // Read() operation. Do not dispose the current provider or add a new
             // mixer input until that Read() has returned.
             ThreadPool.QueueUserWorkItem(delegate { FinishVoiceOutsideMixerRead(finishedVoice); });
-        }
-
-        private PlaybackParameters CreateRandomPlaybackParameters()
-        {
-            double randomizedVolume = Clamp(mVolume + mRandomVolumeOffset + GetRandomSignedValueUnsafe(mRandomVolume), 0.0, 1.0);
-            double randomizedPitch = Clamp(mPitch + mRandomPitchOffset + GetRandomSignedValueUnsafe(mRandomPitch), mMinimumPitch, mMaximumPitch);
-            double randomizedPan = Clamp(mPan + mRandomPanOffset + GetRandomSignedValueUnsafe(mRandomPan), -1.0, 1.0);
-
-            return new PlaybackParameters
-            {
-                Volume = randomizedVolume,
-                Pitch = randomizedPitch,
-                Pan = randomizedPan,
-                BaseVolumeAtStart = mVolume,
-                BasePitchAtStart = mPitch,
-                BasePanAtStart = mPan
-            };
         }
 
         private MixerVoice CreateVoice(SoundPermutation sound, PlaybackParameters parameters)
@@ -393,19 +380,6 @@ namespace MarathonSoundsPlayer.SoundBehavior
                 }
 
                 throw;
-            }
-        }
-
-        private void ValidateSoundSlot()
-        {
-            if (mCurrentSound == null)
-            {
-                throw new InvalidOperationException("A sound slot has not been assigned.");
-            }
-
-            if (mCurrentSound.Samples == null || mCurrentSound.Samples.Count == 0)
-            {
-                throw new InvalidOperationException("The SoundSlot does not contain any samples.");
             }
         }
 

@@ -313,7 +313,7 @@ namespace MarathonSoundsPlayer
 
                     case SoundSourceType.Platform:
 
-                        SoundPropertiesPlatform platformProperties = new SoundPropertiesPlatform(this, soundSlot, soundSlot, soundSlot, soundSlot, soundSlot, volume, volume, pitch, pan, pan, 1, 1, 0, 0, 1, 1, 0, 0, new ObservableCollection<IAudioEffect>());
+                        SoundPropertiesPlatform platformProperties = new SoundPropertiesPlatform(this, soundSlot, soundSlot, soundSlot, soundSlot, soundSlot, volume, volume, pitch, pan, pan, 1, 1, 1, 1, 1, new ObservableCollection<IAudioEffect>());
                         behavior = new PlatformSoundBehavior(platformProperties);
 
                         break;

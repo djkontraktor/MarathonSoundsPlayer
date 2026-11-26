@@ -239,5 +239,26 @@ namespace MarathonSoundsPlayer.SoundBehavior
 
         #endregion
 
+        #region Protected Members
+
+        protected PlaybackParameters CreateRandomPlaybackParameters()
+        {
+            double randomizedVolume = Clamp(mVolume + mRandomVolumeOffset + GetRandomSignedValueUnsafe(mRandomVolume), 0.0, 1.0);
+            double randomizedPitch = Clamp(mPitch + mRandomPitchOffset + GetRandomSignedValueUnsafe(mRandomPitch), mMinimumPitch, mMaximumPitch);
+            double randomizedPan = Clamp(mPan + mRandomPanOffset + GetRandomSignedValueUnsafe(mRandomPan), -1.0, 1.0);
+
+            return new PlaybackParameters
+            {
+                Volume = randomizedVolume,
+                Pitch = randomizedPitch,
+                Pan = randomizedPan,
+                BaseVolumeAtStart = mVolume,
+                BasePitchAtStart = mPitch,
+                BasePanAtStart = mPan
+            };
+        }
+
+        #endregion
+
     }
 }

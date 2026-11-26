@@ -10,6 +10,10 @@ namespace MarathonSoundsPlayer.Interfaces
         // Common
         SoundsFileFormat Format { get; }
         Dictionary<string, SoundSlot> SoundCatalog { get; set; }
+        SoundSlot PlatformStartExtendSound { get; set; }
+        SoundSlot PlatformStopExtendSound { get; set; }
+        SoundSlot PlatformStartRetractSound { get; set; }
+        SoundSlot PlatformStopRetractSound { get; set; }
         SoundSlot CurrentSound { get; set; }
         ObservableCollection<IAudioEffect> Effects { get; set; }
         double Pitch { get; set; }
@@ -39,8 +43,5 @@ namespace MarathonSoundsPlayer.Interfaces
         double ExtendDelay_s { get; set; }
         double RetractDelay_s { get; set; }
         double Distance_WU { get; set; }
-        double Period_s { get; set; }
-        double RandomPeriod_s { get; set; }
-        double RandomPeriodOffset_s { get; set; }
     }
 }
